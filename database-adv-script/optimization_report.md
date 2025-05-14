@@ -9,33 +9,33 @@ This report details the optimization process for a complex query that retrieves 
 The initial query joins multiple tables to retrieve comprehensive booking information:
 
 ```sql
-SELECT 
-    b.booking_id, 
-    b.start_date, 
-    b.end_date, 
+SELECT
+    b.booking_id,
+    b.start_date,
+    b.end_date,
     b.total_price,
     b.status,
-    u.user_id, 
-    u.first_name, 
-    u.last_name, 
+    u.user_id,
+    u.first_name,
+    u.last_name,
     u.email,
-    p.property_id, 
-    p.name AS property_name, 
-    p.location, 
+    p.property_id,
+    p.name AS property_name,
+    p.location,
     p.price_per_night,
-    pay.payment_id, 
-    pay.amount, 
-    pay.payment_date, 
+    pay.payment_id,
+    pay.amount,
+    pay.payment_date,
     pay.payment_method
-FROM 
+FROM
     booking b
-JOIN 
+JOIN
     "user" u ON b.user_id = u.user_id
-JOIN 
+JOIN
     property p ON b.property_id = p.property_id
-LEFT JOIN 
+LEFT JOIN
     payment pay ON b.booking_id = pay.booking_id
-ORDER BY 
+ORDER BY
     b.start_date DESC;
 ```
 
@@ -54,34 +54,35 @@ Using EXPLAIN ANALYZE, we identified several inefficiencies:
 ### Step 1: Column Selection Optimization
 
 ```sql
-SELECT 
-    b.booking_id, 
-    b.start_date, 
-    b.end_date, 
+SELECT
+    b.booking_id,
+    b.start_date,
+    b.end_date,
     b.status,
-    u.user_id, 
-    u.first_name, 
-    u.last_name, 
-    p.property_id, 
-    p.name AS property_name, 
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    p.property_id,
+    p.name AS property_name,
     p.location,
     COALESCE(pay.payment_id, 'Not Paid') AS payment_status
-FROM 
+FROM
     booking b
-JOIN 
+JOIN
     "user" u ON b.user_id = u.user_id
-JOIN 
+JOIN
     property p ON b.property_id = p.property_id
-LEFT JOIN 
+LEFT JOIN
     (SELECT booking_id, payment_id FROM payment) pay ON b.booking_id = pay.booking_id
-WHERE 
+WHERE
     b.start_date >= '2025-01-01'
-ORDER BY 
+ORDER BY
     b.start_date DESC
 LIMIT 100;
 ```
 
 Improvements:
+
 - Reduced column selection to essential fields
 - Added date filtering to reduce result set
 - Used subquery for the payment table to limit fields
@@ -91,31 +92,32 @@ Improvements:
 ### Step 2: Join Order and Further Optimizations
 
 ```sql
-SELECT 
-    b.booking_id, 
-    b.start_date, 
-    b.end_date, 
+SELECT
+    b.booking_id,
+    b.start_date,
+    b.end_date,
     b.status,
     u.first_name || ' ' || u.last_name AS guest_name,
-    p.name AS property_name, 
+    p.name AS property_name,
     p.location,
     CASE WHEN pay.payment_id IS NOT NULL THEN 'Paid' ELSE 'Not Paid' END AS payment_status
-FROM 
+FROM
     booking b
-JOIN 
+JOIN
     property p ON b.property_id = p.property_id
-JOIN 
+JOIN
     "user" u ON b.user_id = u.user_id
-LEFT JOIN 
+LEFT JOIN
     (SELECT DISTINCT booking_id, payment_id FROM payment) pay ON b.booking_id = pay.booking_id
-WHERE 
+WHERE
     b.start_date BETWEEN '2025-01-01' AND '2025-12-31'
-ORDER BY 
+ORDER BY
     b.start_date DESC
 LIMIT 50;
 ```
 
 Further improvements:
+
 - Optimized join order to prioritize the booking table
 - Concatenated name fields to reduce result columns
 - Used more efficient BETWEEN operator for date filtering
@@ -124,10 +126,10 @@ Further improvements:
 
 ## Performance Comparison
 
-| Query Version | Estimated Performance Impact | Key Improvements |
-|---------------|------------------------------|------------------|
-| Original      | Baseline (slowest)          | None - baseline query |
-| Optimization 1 | ~40-60% improved execution time | Column selection, filtering, LIMIT |
+| Query Version  | Estimated Performance Impact    | Key Improvements                                       |
+| -------------- | ------------------------------- | ------------------------------------------------------ |
+| Original       | Baseline (slowest)              | None - baseline query                                  |
+| Optimization 1 | ~40-60% improved execution time | Column selection, filtering, LIMIT                     |
 | Optimization 2 | ~60-80% improved execution time | Join order, expression optimization, tighter filtering |
 
 ## Recommended Indexing Strategy
@@ -135,9 +137,11 @@ Further improvements:
 The following indexes would further improve query performance:
 
 1. `CREATE INDEX idx_booking_start_date ON booking(start_date);`
+
    - Improves filtering and sorting on date ranges
 
 2. `CREATE INDEX idx_booking_status ON booking(status);`
+
    - Enhances filtering by booking status
 
 3. `CREATE INDEX idx_booking_property_dates ON booking(property_id, start_date, end_date);`
