@@ -14,6 +14,7 @@ ON u.id = b.user_id
 SELECT * FROM properties p
 LEFT JOIN reviews r
 ON p.id = r.property_id
+ORDER BY p.id
 
 
 -- This SQL script demonstrates how to use FULL OUTER JOIN to combine data from two tables: users and bookings.
