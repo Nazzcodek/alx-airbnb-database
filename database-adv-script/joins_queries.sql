@@ -16,7 +16,7 @@ LEFT JOIN reviews r
 ON p.id = r.property_id
 
 
--- This SQL script demonstrates how to use RIGHT JOIN to combine data from two tables: users and bookings.
+-- This SQL script demonstrates how to use FULL OUTER JOIN to combine data from two tables: users and bookings.
 -- It retrieves all columns from both tables, including users who may not have made any bookings.
 -- The FULL OUTER JOIN clause is used to include all rows from both tables, regardless of whether there is a match.
 -- If there are no matching bookings for a user, the result will still include the user with NULL values for the booking columns.
